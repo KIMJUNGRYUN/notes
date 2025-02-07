@@ -15,7 +15,10 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 //import org.springframework.security.config.http.SessionCreationPolicy;
 //import org.springframework.security.core.userdetails.User;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import java.time.LocalDate;
 
@@ -31,17 +34,28 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN") //@PreAuthorize("hasRole('ROLE_ADMIN')")같은 원리
                         .anyRequest().authenticated());
         http.csrf(AbstractHttpConfigurer::disable); //CSRF 중지 (post 는 csrf 토큰필요)
+        http.addFilterBefore(new CustomLoggingFilter(), UsernamePasswordAuthenticationFilter.class);
         //http.formLogin(Customizer.withDefaults());
 
         http.httpBasic(Customizer.withDefaults()); //JSON 으로 보내서 로그인
-        
+
         return http.build();
     }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+
+
+
     
     //CommandLineRunner 처음 실행시 한번 실행 유저롤과 테스트 유저1,2,를 입력함
     @Bean
     public CommandLineRunner initData(RoleRepository roleRepository,
-                                      UserRepository userRepository) {
+                                      UserRepository userRepository,
+                                      PasswordEncoder passwordEncoder) {
         return args -> { //실행되는 코드들
             //권한 테이블에 유저 권한 있으면 가져오고 없으면 생성
             Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER)
@@ -51,7 +65,7 @@ public class SecurityConfig {
                     .orElseGet(() -> roleRepository.save(new Role(AppRole.ROLE_ADMIN)));
 
             if (!userRepository.existsByUserName("user1")) {
-                User user1 = new User("user1", "user1@example.com", "{noop}password1");
+                User user1 = new User("user1", "user1@example.com", passwordEncoder.encode("password1"));
                 user1.setAccountNonLocked(false);
                 user1.setAccountNonExpired(true);
                 user1.setCredentialsNonExpired(true);
@@ -65,7 +79,7 @@ public class SecurityConfig {
             }
 
             if (!userRepository.existsByUserName("admin")) {
-                User admin = new User("admin", "admin@example.com", "{noop}adminPass");
+                User admin = new User("admin", "admin@example.com", passwordEncoder.encode("adminPass"));
                 admin.setAccountNonLocked(true);
                 admin.setAccountNonExpired(true);
                 admin.setCredentialsNonExpired(true);
