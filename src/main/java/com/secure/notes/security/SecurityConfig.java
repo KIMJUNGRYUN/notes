@@ -56,7 +56,7 @@ public class SecurityConfig {
 
         //http.formLogin(Customizer.withDefaults());
 
-        http.httpBasic(Customizer.withDefaults()); //JSON 으로 보내서 로그인
+        //http.httpBasic(Customizer.withDefaults()); //JSON 으로 보내서 로그인 토큰으로 받으니 필요없음
 
         return http.build();
     }
